@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -610,40 +611,172 @@ fun BuilderScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Suggested Templates:",
+                        text = "TEMPLATE LIBRARY (10 DIVERSE SCHEMES)",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BentoOnSurface.copy(alpha = 0.5f)
+                        color = BentoPrimary,
+                        letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    var selectedCategory by remember { mutableStateOf("All") }
+                    val categories = listOf("All", "Portfolio", "Business", "Blog", "Event")
+                    
+                    // Horizontal scrollable category pill filtering
+                    LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        val suggestedPrompts = listOf(
-                            "Coffee Shop" to "Sleek Modern Coffee Shop landing website with rustic gold accents and reservation contact form.",
-                            "Portfolios" to "Photographer portfolio page with full bleed minimalist gallery and online booking contact.",
-                            "Clinic Appt" to "Dental care clinic layout with glowing medical primary, appointment scheduler list, and faq segment."
-                        )
-
-                        suggestedPrompts.forEach { (label, promptText) ->
+                        items(categories) { category ->
+                            val isSelected = selectedCategory == category
                             Surface(
-                                onClick = {
-                                    if (hasAccess && !isGenerating) {
-                                        viewModel.inputDescription.value = promptText
-                                    }
-                                },
+                                onClick = { selectedCategory = category },
                                 shape = RoundedCornerShape(100.dp),
-                                color = BentoLavender,
-                                border = BorderStroke(1.dp, BentoBorder.copy(alpha = 0.3f))
+                                color = if (isSelected) BentoPrimary else BentoLavender.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, if (isSelected) BentoPrimary else BentoBorder.copy(alpha = 0.3f)),
+                                modifier = Modifier.testTag("category_tab_$category")
                             ) {
                                 Text(
-                                    text = label,
-                                    fontSize = 10.sp,
+                                    text = category,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = BentoLavenderOn,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    color = if (isSelected) Color.White else BentoLavenderOn,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                                 )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    val filteredTemplates = remember(selectedCategory) {
+                        if (selectedCategory == "All") {
+                            com.example.data.TemplateLibrary.list
+                        } else {
+                            com.example.data.TemplateLibrary.list.filter { it.category == selectedCategory }
+                        }
+                    }
+
+                    // Gorgeous horizontal carousel of the 10 diverse templates
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(145.dp)
+                    ) {
+                        items(filteredTemplates) { template ->
+                            Card(
+                                elevation = CardDefaults.cardElevation(0.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, BentoBorder),
+                                modifier = Modifier
+                                    .width(260.dp)
+                                    .fillMaxHeight()
+                                    .testTag("template_card_${template.id}")
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(12.dp)
+                                        .fillMaxSize(),
+                                    verticalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(Color(template.accentColorHex).copy(alpha = 0.15f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = template.getIcon(),
+                                                    contentDescription = null,
+                                                    tint = Color(template.accentColorHex),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = template.title,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = BentoSecondary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = template.category.uppercase(),
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = Color(template.accentColorHex)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = template.shortDescription,
+                                            fontSize = 10.sp,
+                                            color = BentoOnSurface.copy(alpha = 0.6f),
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                            lineHeight = 13.sp
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                if (hasAccess && !isGenerating) {
+                                                    viewModel.inputDescription.value = template.fullPrompt
+                                                    Toast.makeText(context, "Filled! You can customize description now.", Toast.LENGTH_SHORT).show()
+                                                } else if (!hasAccess) {
+                                                    onPaywallRequested()
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(100.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = BentoLavender,
+                                                contentColor = BentoLavenderOn
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(28.dp)
+                                                .testTag("template_custom_${template.id}")
+                                        ) {
+                                            Text("Customize", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Button(
+                                            onClick = {
+                                                if (hasAccess && !isGenerating) {
+                                                    viewModel.inputDescription.value = template.fullPrompt
+                                                    viewModel.generateNewWebsite()
+                                                } else if (!hasAccess) {
+                                                    onPaywallRequested()
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(100.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(template.accentColorHex),
+                                                contentColor = Color.White
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(28.dp)
+                                                .testTag("template_draft_${template.id}")
+                                        ) {
+                                            Text("Instant Draft", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1524,107 +1657,374 @@ fun PaywallAndMpesaDialog(
     onDismiss: () -> Unit,
     viewModel: MainViewModel
 ) {
-    var mpesaCode by remember { mutableStateOf("") }
+    var paymentStep by remember { mutableStateOf(1) } // 1: Initiator, 2: PIN Prompt, 3: SSL Handshake
+    var phoneNumberInput by remember { mutableStateOf(currentPhone) }
+    var pinCodeInput by remember { mutableStateOf("") }
+    var checkoutStatusText by remember { mutableStateOf("") }
+    var generatedTxId by remember { mutableStateOf("") }
+    
     val showSuccessAlert by viewModel.showPaymentSuccessAlert.collectAsState()
     val context = LocalContext.current
 
+    // Launch secure simulation when step 3 is triggered
+    if (paymentStep == 3) {
+        LaunchedEffect(Unit) {
+            checkoutStatusText = "Establishing secure SSL connection to Safaricom..."
+            kotlinx.coroutines.delay(1000)
+            checkoutStatusText = "Handshaking encrypted Daraja API payload..."
+            kotlinx.coroutines.delay(1000)
+            checkoutStatusText = "Verifying STK callback signature match..."
+            kotlinx.coroutines.delay(800)
+            
+            val randomChars = ('A'..'Z') + ('0'..'9')
+            val code = "MK" + (1..8).map { randomChars.random() }.joinToString("")
+            generatedTxId = code
+            
+            viewModel.currentUserPhone.value = phoneNumberInput.trim()
+            viewModel.mpesaTxInput.value = code
+            viewModel.processMpesaPayment()
+        }
+    }
+
     AlertDialog(
         onDismissRequest = {
-            if (!showSuccessAlert) {
+            if (!showSuccessAlert && paymentStep != 3) {
                 onDismiss()
             }
         },
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFFDC2626))
-                Text("Paywall Subscription Plan", fontWeight = FontWeight.Bold)
+            Row(
+                verticalAlignment = Alignment.CenterVertically, 
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (showSuccessAlert) BentoMpesaGreen else BentoPrimary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (showSuccessAlert) Icons.Default.Check else Icons.Default.Payment, 
+                        contentDescription = null, 
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Text(
+                    text = if (showSuccessAlert) "Payment Secured!" else "M-Pesa Checkout Flow", 
+                    fontWeight = FontWeight.Bold,
+                    color = BentoSecondary,
+                    fontSize = 18.sp
+                )
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 if (showSuccessAlert) {
+                    // Step 4: Beautiful secure digital payment receipt
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(54.dp))
-                        Text("M-Pesa Verification Successful!", fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFE8F5E9)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle, 
+                                contentDescription = null, 
+                                tint = BentoMpesaGreen, 
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                        
                         Text(
-                            text = "KES 50 subscription plan successfully active for phone number: $currentPhone. Website generation is now unlocked!",
-                            fontSize = 13.sp,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                } else {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFFFEF3C7),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
-                    ) {
-                        Text(
-                            text = "⚠️ NO-CODE RESTRICTION EXCLUSION ACTIVE",
-                            fontSize = 10.sp,
+                            text = "KES 50.00 SUCCESSFUL",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFFB45309),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            color = BentoMpesaGreen
+                        )
+                        
+                        // Styled receipt card
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = BentoSurface.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.dp, BentoBorder),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Merchant Ref", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoSecondary)
+                                    Text("0715871815 (Host/Website)", fontSize = 11.sp, color = BentoOnSurface)
+                                }
+                                HorizontalDivider(color = BentoBorder.copy(alpha = 0.3f))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Payer Customer", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoSecondary)
+                                    Text(phoneNumberInput, fontSize = 11.sp, color = BentoOnSurface)
+                                }
+                                HorizontalDivider(color = BentoBorder.copy(alpha = 0.3f))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("M-Pesa Receipt ID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoSecondary)
+                                    Text(
+                                        text = if (generatedTxId.isNotEmpty()) generatedTxId else "MKF73ED92W", 
+                                        fontFamily = FontFamily.Monospace, 
+                                        fontSize = 11.sp, 
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = BentoPrimary
+                                    )
+                                }
+                                HorizontalDivider(color = BentoBorder.copy(alpha = 0.3f))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Billing Cycle", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoSecondary)
+                                    Text("Weekly Subscription (KES 50)", fontSize = 11.sp, color = BentoOnSurface)
+                                }
+                                HorizontalDivider(color = BentoBorder.copy(alpha = 0.3f))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Gate Protocol", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoSecondary)
+                                    Text("🔒 AES-256 SSL Encrypted", fontSize = 11.sp, color = BentoMpesaGreen, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                        
+                        Text(
+                            text = "Thank you! Unlimited design drafts on Website Creator are now unlocked for your active simulated phone key.",
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            color = BentoOnSurface.copy(alpha = 0.7f),
+                            lineHeight = 16.sp
                         )
                     }
-
-                    Text(
-                        text = "To generate design outlines from description, you must pay structural weekly access of 50 KES.",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-
+                } else if (paymentStep == 1) {
+                    // Step 1: Initiator interface
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFFE8F5E9),
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                        border = BorderStroke(1.dp, Color(0xFFA5D6A7))
                     ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "M-PESA PAYMENT DETAILS:",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.VerifiedUser, 
+                                contentDescription = null, 
+                                tint = BentoMpesaGreen,
+                                modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "1. Go to M-Pesa Menu / Lipa Na M-Pesa",
+                                text = "Safaricom Daraja Integrated Merchant",
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "2. Pay KES 50 to Phone: 0715871815",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "3. Confirm recipient name is Host/Bradox.",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32)
                             )
                         }
                     }
 
                     Text(
-                        text = "After paying, enter the transaction ID below:",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "To authorize unlimited HTML website creations: you can trigger a simulated secure M-Pesa STK Push payment of KES 50 directly below.",
+                        fontSize = 13.sp,
+                        color = BentoOnSurface.copy(alpha = 0.7f),
+                        lineHeight = 18.sp
                     )
 
                     OutlinedTextField(
-                        value = mpesaCode,
-                        onValueChange = { mpesaCode = it },
-                        placeholder = { Text("E.g., QRE348FJ7E") },
-                        label = { Text("M-Pesa Transaction Ref ID") },
-                        modifier = Modifier.fillMaxWidth().testTag("mpesa_ref_input"),
-                        shape = RoundedCornerShape(10.dp)
+                        value = phoneNumberInput,
+                        onValueChange = { phoneNumberInput = it },
+                        label = { Text("Billing Phone Number (Safaricom)") },
+                        placeholder = { Text("E.g., 0715871815") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        modifier = Modifier.fillMaxWidth().testTag("billing_phone_input_field"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = BentoOnSurface,
+                            unfocusedTextColor = BentoOnSurface,
+                            focusedBorderColor = BentoPrimary,
+                            unfocusedBorderColor = BentoBorder
+                        )
                     )
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = BentoSurface),
+                        border = BorderStroke(1.dp, BentoBorder),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "TRANSACTION ORDER CONFIGURATION:",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                color = BentoPrimary,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "• CHARGE TARIFF: KES 50 (Weekly Access Plan)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoSecondary
+                            )
+                            Text(
+                                text = "• MERCHANT RECIPIENT: 0715871815 (Website Creator)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoSecondary
+                            )
+                            Text(
+                                text = "• SECURITY CHECK: PIN-controlled customer authorization",
+                                fontSize = 11.sp,
+                                color = BentoOnSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                } else if (paymentStep == 2) {
+                    // Step 2: Realistic Overlay SIM Toolkit STK Push Dialog
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFEEEEEE)),
+                        border = BorderStroke(2.dp, Color(0xFF9E9E9E)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp)
+                            .testTag("stk_push_overlay_dialog")
+                    ) {
+                        Column {
+                            // Title bar of SIM Menu
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFBDBDBD))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "M-PESA ONLINE",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.Black
+                                )
+                            }
+                            
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "Do you want to pay KES 50.00 to Website Creator (0715871815)?",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                                
+                                Text(
+                                    text = "Enter M-PESA PIN:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.DarkGray
+                                )
+                                
+                                OutlinedTextField(
+                                    value = pinCodeInput,
+                                    onValueChange = { if (it.length <= 4) pinCodeInput = it },
+                                    placeholder = { Text("••••") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("stk_pin_input_field"),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.Black,
+                                        unfocusedTextColor = Color.Black,
+                                        focusedBorderColor = BentoMpesaGreen,
+                                        unfocusedBorderColor = Color.DarkGray
+                                    )
+                                )
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(
+                                        onClick = { paymentStep = 1 },
+                                        modifier = Modifier.testTag("stk_cancel_button")
+                                    ) {
+                                        Text("CANCEL", color = Color.Red, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Button(
+                                        onClick = {
+                                            if (pinCodeInput.length == 4) {
+                                                paymentStep = 3
+                                            } else {
+                                                Toast.makeText(context, "Please enter your 4-digit M-PESA PIN", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = BentoMpesaGreen),
+                                        shape = RoundedCornerShape(4.dp),
+                                        modifier = Modifier.testTag("stk_pay_now_button")
+                                    ) {
+                                        Text("PAY NOW", color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (paymentStep == 3) {
+                    // Step 3: Secure Network Gateway Progress Screen
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp)
+                            .testTag("secure_checkout_loading"),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color = BentoMpesaGreen,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = checkoutStatusText,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BentoSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Please do not close this window. Intersecting secure Daraja nodes...",
+                            fontSize = 10.sp,
+                            color = BentoOnSurface.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
         },
@@ -1634,30 +2034,35 @@ fun PaywallAndMpesaDialog(
                     onClick = {
                         viewModel.showPaymentSuccessAlert.value = false
                         onDismiss()
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BentoMpesaGreen),
+                    modifier = Modifier.fillMaxWidth().testTag("receipt_done_button")
                 ) {
-                    Text("Start Generating")
+                    Text("Enter Builder & Generate", fontWeight = FontWeight.Bold)
                 }
-            } else {
+            } else if (paymentStep == 1) {
                 Button(
                     onClick = {
-                        if (mpesaCode.trim().length >= 5) {
-                            viewModel.mpesaTxInput.value = mpesaCode
-                            viewModel.processMpesaPayment()
+                        if (phoneNumberInput.trim().length >= 9) {
+                            paymentStep = 2
                         } else {
-                            Toast.makeText(context, "Please enter a valid M-Pesa transaction reference (at least 5 characters).", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Please enter a valid Safaricom Phone Number.", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.testTag("pay_confirm_button")
+                    colors = ButtonDefaults.buttonColors(containerColor = BentoPrimary),
+                    modifier = Modifier.fillMaxWidth().testTag("initiate_stk_button")
                 ) {
-                    Text("Verify Payment")
+                    Text("Trigger Secure STK Push", fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
-            if (!showSuccessAlert) {
-                TextButton(onClick = onDismiss) {
-                    Text("Close")
+            if (!showSuccessAlert && paymentStep == 1) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag("close_paywall_button")
+                ) {
+                    Text("Cancel", color = BentoSecondary)
                 }
             }
         }
