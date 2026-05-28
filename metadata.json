@@ -1,0 +1,6 @@
+{
+  "name": "Website Creator",
+  "description": "AI-powered website generator from text description with an M-Pesa paywall and inner circle exemption system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
